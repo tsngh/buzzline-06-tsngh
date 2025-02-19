@@ -72,13 +72,13 @@ Windows:
 
 ```shell
 .venv\Scripts\activate
-py -m producers.producer_case
+py -m producers.producer_tsngh
 ```
 
 Mac/Linux:
 ```zsh
 source .venv/bin/activate
-python3 -m producers.producer_case
+python3 -m producers.producer_tsngh
 ```
 
 The producer will still work if Kafka is not available.
@@ -96,17 +96,17 @@ Use the commands below to activate .venv, and start the consumer.
 Windows:
 ```shell
 .venv\Scripts\activate
-py -m consumers.kafka_consumer_case
+py -m consumers.kafka_consumer_tsngh
 OR
-py -m consumers.file_consumer_case
+py -m consumers.file_consumer_tsngh
 ```
 
 Mac/Linux:
 ```zsh
 source .venv/bin/activate
-python3 -m consumers.kafka_consumer_case
+python3 -m consumers.kafka_consumer_tsngh
 OR
-python3 -m consumers.file_consumer_case
+python3 -m consumers.file_consumer_tsngh
 ```
 
 ---

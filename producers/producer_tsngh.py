@@ -1,5 +1,5 @@
 """
-producer_case.py
+producer_tsngh.py
 
 Stream JSON data to a file and - if available - a Kafka topic.
 
@@ -56,40 +56,44 @@ def assess_sentiment(text: str) -> float:
 #####################################
 
 
-def generate_messages():
+def generate_winter_messages():
     """
-    Generate a stream of JSON messages.
+    Generate a stream of JSON messages for winter activities in Minneapolis.
     """
-    ADJECTIVES = ["amazing", "funny", "boring", "exciting", "weird"]
-    ACTIONS = ["found", "saw", "tried", "shared", "loved"]
+    ADJECTIVES = ["snowy", "frigid", "invigorating", "festive", "cozy"]
+    ACTIONS = ["tried", "enjoyed", "experienced", "participated in", "loved"]
     TOPICS = [
-        "a movie",
-        "a meme",
-        "an app",
-        "a trick",
-        "a story",
-        "Python",
-        "JavaScript",
-        "recipe",
-        "travel",
-        "game",
+        "ice skating",
+        "cross-country skiing",
+        "snowshoeing",
+        "ice fishing",
+        "sledding",
+        "St. Paul Winter Carnival",
+        "Great Northern Festival",
+        "Minneapolis Boat Show",
+        "winter photography",
+        "indoor museum visit"
     ]
     AUTHORS = ["Alice", "Bob", "Charlie", "Eve"]
     KEYWORD_CATEGORIES = {
-        "meme": "humor",
-        "Python": "tech",
-        "JavaScript": "tech",
-        "recipe": "food",
-        "travel": "travel",
-        "movie": "entertainment",
-        "game": "gaming",
+        "skating": "winter sports",
+        "skiing": "winter sports",
+        "snowshoeing": "winter sports",
+        "fishing": "outdoor recreation",
+        "sledding": "winter sports",
+        "Carnival": "events",
+        "Festival": "events",
+        "Boat Show": "events",
+        "photography": "arts",
+        "museum": "indoor activities"
     }
+    
     while True:
         adjective = random.choice(ADJECTIVES)
         action = random.choice(ACTIONS)
         topic = random.choice(TOPICS)
         author = random.choice(AUTHORS)
-        message_text = f"I just {action} {topic}! It was {adjective}."
+        message_text = f"I just {action} {topic} in Minneapolis! It was {adjective}."
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Find category based on keywords
@@ -98,8 +102,8 @@ def generate_messages():
         )
         category = KEYWORD_CATEGORIES.get(keyword_mentioned, "other")
 
-        # Assess sentiment
-        sentiment = assess_sentiment(message_text)
+        # Simulate sentiment (replace with actual sentiment analysis if available)
+        sentiment = random.uniform(0, 1)
 
         # Create JSON message
         json_message = {
@@ -107,9 +111,11 @@ def generate_messages():
             "author": author,
             "timestamp": timestamp,
             "category": category,
-            "sentiment": sentiment,
+            "sentiment": round(sentiment, 2),
             "keyword_mentioned": keyword_mentioned,
             "message_length": len(message_text),
+            "season": "Winter",
+            "average_temp": f"{random.randint(9, 29)}°F"
         }
 
         yield json_message
@@ -174,7 +180,7 @@ def main() -> None:
 
     logger.info("STEP 5. Generate messages continuously.")
     try:
-        for message in generate_messages():
+        for message in generate_winter_messages():
             logger.info(message)
 
             with live_data_path.open("a") as f:

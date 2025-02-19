@@ -32,7 +32,7 @@ import time
 # import from local modules
 import utils.utils_config as config
 from utils.utils_logger import logger
-from .db_sqlite_case import init_db, insert_message
+from .db_sqlite_tsngh import init_db, insert_message
 
 #####################################
 # Function to process a single message

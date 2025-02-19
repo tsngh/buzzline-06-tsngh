@@ -1,4 +1,4 @@
-""" db_sqlite_case.py 
+""" db_sqlite_tsngh.py 
 
 Has the following functions:
 - init_db(config): Initialize the SQLite database and create the 'streamed_messages' table if it doesn't exist.
