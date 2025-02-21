@@ -6,14 +6,15 @@ Insert the processed messages into a database.
 
 Example JSON message
 {
-    "message": "I just shared a meme! It was amazing.",
-    "author": "Charlie",
+    "message": "I just ice skating in Minneapolis! It was invigorating.",
+    "author": "Judy",
     "timestamp": "2025-01-29 14:35:20",
-    "category": "humor",
+    "category": "winter sports",
     "sentiment": 0.87,
-    "keyword_mentioned": "meme",
-    "message_length": 42
+    "keyword_mentioned": "skating",
+    "message_length": 45
 }
+
 
 Database functions are in consumers/db_sqlite_case.py.
 Environment variables are in utils/utils_config module. 
@@ -23,40 +24,63 @@ Environment variables are in utils/utils_config module.
 # Import Modules
 #####################################
 
-# import from standard library
 import json
 import os
 import pathlib
 import sys
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from matplotlib.animation import FuncAnimation
+from collections import defaultdict
 
-# import external modules
 from kafka import KafkaConsumer
 
-# import from local modules
 import utils.utils_config as config
 from utils.utils_consumer import create_kafka_consumer
 from utils.utils_logger import logger
 from utils.utils_producer import verify_services, is_topic_available
 
-# Ensure the parent directory is in sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from consumers.db_sqlite_tsngh import init_db, insert_message
+
 
 #####################################
 # Function to process a single message
 # #####################################
 
+sentiment_data = defaultdict(list)
 
-def process_message(message: dict) -> None:
-    """
-    Process and transform a single JSON message.
-    Converts message fields to appropriate data types.
+# Set up the plot
+fig, ax = plt.subplots(figsize=(12, 6))
+plt.ion()
 
-    Args:
-        message (dict): The JSON message as a Python dictionary.
-    """
-    logger.info("Called process_message() with:")
-    logger.info(f"   {message=}")
+def update_chart(frame):
+    ax.clear()
+    categories = list(sentiment_data.keys())
+    avg_sentiments = [sum(sentiments)/len(sentiments) if sentiments else 0 for sentiments in sentiment_data.values()]
+
+    # Create a color map
+    colors = cm.rainbow(np.linspace(0, 1, len(categories)))
+
+    bars = ax.bar(categories, avg_sentiments, color=colors)
+    ax.set_xlabel("Categories")
+    ax.set_ylabel("Average Sentiment")
+    ax.set_title("Real-Time Average Sentiment by Category - Winter Activities")
+    ax.set_ylim(0, 1)
+
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.2f}',
+                ha='center', va='bottom')
+
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+
+def process_message(message: dict) -> dict:
+    logger.info(f"Processing message: {message}")
     try:
         processed_message = {
             "message": message.get("message"),
@@ -66,44 +90,22 @@ def process_message(message: dict) -> None:
             "sentiment": float(message.get("sentiment", 0.0)),
             "keyword_mentioned": message.get("keyword_mentioned"),
             "message_length": int(message.get("message_length", 0)),
+            "season": message.get("season", "Winter"),
+            "average_temp": message.get("average_temp")
         }
+        
+        # Update sentiment data for visualization
+        category = processed_message["keyword_mentioned"]
+        sentiment = processed_message["sentiment"]
+        sentiment_data[category].append(sentiment)
+        
         logger.info(f"Processed message: {processed_message}")
         return processed_message
     except Exception as e:
         logger.error(f"Error processing message: {e}")
         return None
 
-
-#####################################
-# Consume Messages from Kafka Topic
-#####################################
-
-
-def consume_messages_from_kafka(
-    topic: str,
-    kafka_url: str,
-    group: str,
-    sql_path: pathlib.Path,
-    interval_secs: int,
-):
-    """
-    Consume new messages from Kafka topic and process them.
-    Each message is expected to be JSON-formatted.
-
-    Args:
-    - topic (str): Kafka topic to consume messages from.
-    - kafka_url (str): Kafka broker address.
-    - group (str): Consumer group ID for Kafka.
-    - sql_path (pathlib.Path): Path to the SQLite database file.
-    - interval_secs (int): Interval between reads from the file.
-    """
-    logger.info("Called consume_messages_from_kafka() with:")
-    logger.info(f"   {topic=}")
-    logger.info(f"   {kafka_url=}")
-    logger.info(f"   {group=}")
-    logger.info(f"   {sql_path=}")
-    logger.info(f"   {interval_secs=}")
-
+def consume_messages_from_kafka(topic, kafka_url, group, sql_path, interval_secs):
     logger.info("Step 1. Verify Kafka Services.")
     try:
         verify_services()
@@ -113,7 +115,7 @@ def consume_messages_from_kafka(
 
     logger.info("Step 2. Create a Kafka consumer.")
     try:
-        consumer: KafkaConsumer = create_kafka_consumer(
+        consumer = create_kafka_consumer(
             topic,
             group,
             value_deserializer_provided=lambda x: json.loads(x.decode("utf-8")),
@@ -123,81 +125,171 @@ def consume_messages_from_kafka(
         sys.exit(11)
 
     logger.info("Step 3. Verify topic exists.")
-    if consumer is not None:
-        try:
-            is_topic_available(topic)
-            logger.info(f"Kafka topic '{topic}' is ready.")
-        except Exception as e:
-            logger.error(
-                f"ERROR: Topic '{topic}' does not exist. Please run the Kafka producer. : {e}"
-            )
-            sys.exit(13)
-
-    logger.info("Step 4. Process messages.")
-
-    if consumer is None:
-        logger.error("ERROR: Consumer is None. Exiting.")
+    try:
+        if not is_topic_available(topic):
+            raise ValueError(f"Topic '{topic}' does not exist.")
+        logger.info(f"Kafka topic '{topic}' is ready.")
+    except Exception as e:
+        logger.error(f"ERROR: Topic '{topic}' does not exist or could not be verified: {e}")
         sys.exit(13)
 
+    logger.info("Step 4. Process messages.")
     try:
-        # consumer is a KafkaConsumer
-        # message is a kafka.consumer.fetcher.ConsumerRecord
-        # message.value is a Python dictionary
+        last_update_time = time.time()
         for message in consumer:
             processed_message = process_message(message.value)
             if processed_message:
                 insert_message(processed_message, sql_path)
+                logger.info(f"Inserted message into database: {processed_message}")
+            
+            # Update chart every 5 seconds
+            current_time = time.time()
+            if current_time - last_update_time >= 5:
+                plt.draw()
+                plt.pause(0.001)
+                last_update_time = current_time
 
     except Exception as e:
         logger.error(f"ERROR: Could not consume messages from Kafka: {e}")
         raise
+    finally:
+        if consumer:
+            consumer.close()
+            logger.info("Kafka consumer closed.")
+
+def main():
+    try:
+        topic = config.get_kafka_topic()
+        kafka_url = config.get_kafka_broker_address()
+        group_id = config.get_kafka_consumer_group_id()
+        interval_secs = config.get_message_interval_seconds_as_int()
+        sqlite_path = config.get_sqlite_path()
+        
+        if sqlite_path.exists():
+            sqlite_path.unlink()
+        
+        init_db(sqlite_path)
+        
+        # Set up the sentiment analysis plot
+        ani = FuncAnimation(fig, update_chart, interval=5000)  # Update every 5 seconds
+        
+        plt.show(block=False)  # Show the plot without blocking
+        consume_messages_from_kafka(topic, kafka_url, group_id, sqlite_path, interval_secs)
+    except KeyboardInterrupt:
+        logger.warning("Consumer interrupted by user.")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+    finally:
+        logger.info("Consumer shutting down.")
+        plt.close()
+
+if __name__ == "__main__":
+    main()
+
+"""
+fig, ax = plt.subplots(figsize=(12, 6))
+bars = None
+
+def process_message(message: dict) -> dict:
+    logger.info(f"Processing message: {message}")
+    try:
+        processed_message = {
+            "message": message.get("message"),
+            "author": message.get("author"),
+            "timestamp": message.get("timestamp"),
+            "category": message.get("category"),
+            "sentiment": float(message.get("sentiment", 0.0)),
+            "keyword_mentioned": message.get("keyword_mentioned"),
+            "message_length": int(message.get("message_length", 0)),
+            "season": message.get("season", "Winter"),
+            "average_temp": message.get("average_temp")
+        }
+        
+        # Update sentiment data for visualization
+        category = processed_message["keyword_mentioned"]
+        sentiment = processed_message["sentiment"]
+        sentiment_data[category].append(sentiment)
+        
+        logger.info(f"Processed message: {processed_message}")
+        return processed_message
+    except Exception as e:
+        logger.error(f"Error processing message: {e}")
+        return None
+
+#####################################
+# Create sentiment analysis chart by category
+#####################################
+
+def update_plot(frame):
+    ax.clear()  # Clear the axis for a complete redraw
+    categories = list(sentiment_data.keys())
+    avg_sentiments = [sum(scores) / len(scores) if scores else 0 for scores in sentiment_data.values()]
+    
+    print(f"Plotting data - Categories: {categories}, Sentiments: {avg_sentiments}")  # Debug print
+    
+    ax.bar(categories, avg_sentiments)
+    ax.set_ylim(0, 1)
+    ax.set_title("Sentiment Scores of Different Winter Activities")
+    ax.set_xlabel("Categories")
+    ax.set_ylabel("Average Sentiment Score")
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+
+
+#####################################
+# Consume Messages from Kafka Topic
+#####################################
+
+def consume_messages_from_kafka(topic, kafka_url, group, sql_path, interval_secs):
+    consumer = None
+    try:
+        verify_services()
+        consumer = create_kafka_consumer(
+            topic,
+            group,
+            value_deserializer_provided=lambda x: json.loads(x.decode("utf-8")),
+        )
+        if not is_topic_available(topic):
+            raise ValueError(f"Topic '{topic}' does not exist.")
+        
+        ani = FuncAnimation(fig, update_plot, interval=5000, blit=True)
+        plt.show(block=False)
+        
+        for message in consumer:
+            processed_message = process_message(message.value)
+            if processed_message:
+                insert_message(processed_message, sql_path)
+                logger.info(f"Inserted message into database: {processed_message}")
+            
+            plt.pause(0.1)  # Allow time for the plot to update
+            
+    except Exception as e:
+        logger.error(f"ERROR: Could not consume messages from Kafka: {e}")
+        raise
+    finally:
+        if consumer:
+            consumer.close()
+            logger.info("Kafka consumer closed.")
+
 
 
 #####################################
 # Define Main Function
 #####################################
-
-
 def main():
-    """
-    Main function to run the consumer process.
-
-    Reads configuration, initializes the database, and starts consumption.
-    """
-    logger.info("Starting Consumer to run continuously.")
-    logger.info("Things can fail or get interrupted, so use a try block.")
-    logger.info("Moved .env variables into a utils config module.")
-
-    logger.info("STEP 1. Read environment variables using new config functions.")
     try:
         topic = config.get_kafka_topic()
         kafka_url = config.get_kafka_broker_address()
         group_id = config.get_kafka_consumer_group_id()
-        interval_secs: int = config.get_message_interval_seconds_as_int()
-        sqlite_path: pathlib.Path = config.get_sqlite_path()
-        logger.info("SUCCESS: Read environment variables.")
-    except Exception as e:
-        logger.error(f"ERROR: Failed to read environment variables: {e}")
-        sys.exit(1)
-
-    logger.info("STEP 2. Delete any prior database file for a fresh start.")
-    if sqlite_path.exists():
-        try:
+        interval_secs = config.get_message_interval_seconds_as_int()
+        sqlite_path = config.get_sqlite_path()
+        
+        if sqlite_path.exists():
             sqlite_path.unlink()
-            logger.info("SUCCESS: Deleted database file.")
-        except Exception as e:
-            logger.error(f"ERROR: Failed to delete DB file: {e}")
-            sys.exit(2)
-
-    logger.info("STEP 3. Initialize a new database with an empty table.")
-    try:
+        
         init_db(sqlite_path)
-    except Exception as e:
-        logger.error(f"ERROR: Failed to create db table: {e}")
-        sys.exit(3)
-
-    logger.info("STEP 4. Begin consuming and storing messages.")
-    try:
+        
         consume_messages_from_kafka(
             topic, kafka_url, group_id, sqlite_path, interval_secs
         )
@@ -207,7 +299,8 @@ def main():
         logger.error(f"Unexpected error: {e}")
     finally:
         logger.info("Consumer shutting down.")
-
+        plt.pause(5)  # Give some time for the final update
+        plt.close()
 
 #####################################
 # Conditional Execution
@@ -215,3 +308,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+"""

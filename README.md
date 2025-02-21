@@ -5,6 +5,9 @@ Nearly every streaming analytics system stores processed data somewhere for furt
 In this example project, we incorporate a relational data store. 
 We use SQLite, but the example could be altered to work with MySQL, PostgreSQL, or MongoDB.
 
+Consuming messages from kafka topic about winter activities in Minneapolis by author, analyzing messages' sentiment score by category, 
+stores it in a sqlite3 database and visualizes the scores by category in a histogram.
+
 ## VS Code Extensions
 
 - Black Formatter by Microsoft
@@ -184,3 +187,5 @@ Managing Python virtual environments is a valuable skill.
 This project is licensed under the MIT License as an example project. 
 You are encouraged to fork, copy, explore, and modify the code as you like. 
 See the [LICENSE](LICENSE.txt) file for more.
+
+![Histogram]("C:\Users\Admin\OneDrive - nwmissouri.edu\46613\OneDrive - nwmissouri.edu\44671\Week6\readme.png")

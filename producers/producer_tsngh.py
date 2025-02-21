@@ -5,13 +5,13 @@ Stream JSON data to a file and - if available - a Kafka topic.
 
 Example JSON message
 {
-    "message": "I just shared a meme! It was amazing.",
-    "author": "Charlie",
+    "message": "I just ice skating in Minneapolis! It was invigorating.",
+    "author": "Judy",
     "timestamp": "2025-01-29 14:35:20",
-    "category": "humor",
+    "category": "winter sports",
     "sentiment": 0.87,
-    "keyword_mentioned": "meme",
-    "message_length": 42
+    "keyword_mentioned": "skating",
+    "message_length": 45
 }
 
 Environment variables are in utils/utils_config module. 
@@ -74,7 +74,7 @@ def generate_winter_messages():
         "winter photography",
         "indoor museum visit"
     ]
-    AUTHORS = ["Alice", "Bob", "Charlie", "Eve"]
+    AUTHORS = ["Prince", "Bob", "Walter", "Judy"]
     KEYWORD_CATEGORIES = {
         "skating": "winter sports",
         "skiing": "winter sports",

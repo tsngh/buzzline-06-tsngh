@@ -66,7 +66,9 @@ def init_db(db_path: pathlib.Path):
                     category TEXT,
                     sentiment REAL,
                     keyword_mentioned TEXT,
-                    message_length INTEGER
+                    message_length INTEGER,
+                    season TEXT,
+                    average_temp TEXT
                 )
             """
             )
@@ -79,7 +81,6 @@ def init_db(db_path: pathlib.Path):
 #####################################
 # Define Function to Insert a Processed Message into the Database
 #####################################
-
 
 def insert_message(message: dict, db_path: pathlib.Path) -> None:
     """
@@ -100,8 +101,8 @@ def insert_message(message: dict, db_path: pathlib.Path) -> None:
             cursor.execute(
                 """
                 INSERT INTO streamed_messages (
-                    message, author, timestamp, category, sentiment, keyword_mentioned, message_length
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    message, author, timestamp, category, sentiment, keyword_mentioned, message_length, season, average_temp
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     message["message"],
@@ -111,13 +112,14 @@ def insert_message(message: dict, db_path: pathlib.Path) -> None:
                     message["sentiment"],
                     message["keyword_mentioned"],
                     message["message_length"],
+                    message["season"],
+                    message["average_temp"],
                 ),
             )
             conn.commit()
         logger.info("Inserted one message into the database.")
     except Exception as e:
         logger.error(f"ERROR: Failed to insert message into the database: {e}")
-
 
 #####################################
 # Define Function to Delete a Message from the Database
@@ -158,14 +160,16 @@ def main():
     logger.info(f"Initialized database file at {TEST_DB_PATH}.")
 
     test_message = {
-        "message": "I just shared a meme! It was amazing.",
-        "author": "Charlie",
+        "message": "I just enjoyed ice skating in Minneapolis! It was invigorating.",
+        "author": "Judy",
         "timestamp": "2025-01-29 14:35:20",
-        "category": "humor",
+        "category": "winter sports",
         "sentiment": 0.87,
-        "keyword_mentioned": "meme",
-        "message_length": 42,
-    }
+        "keyword_mentioned": "skating",
+        "message_length": len("I just enjoyed ice skating in Minneapolis! It was invigorating."),
+        "season": "Winter",
+        "average_temp": "25°F"
+}
 
     insert_message(test_message, TEST_DB_PATH)
 
