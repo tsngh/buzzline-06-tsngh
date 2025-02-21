@@ -188,4 +188,4 @@ This project is licensed under the MIT License as an example project.
 You are encouraged to fork, copy, explore, and modify the code as you like. 
 See the [LICENSE](LICENSE.txt) file for more.
 
-![Histogram]("C:\Users\Admin\OneDrive - nwmissouri.edu\46613\OneDrive - nwmissouri.edu\44671\Week6\readme.png")
+![Histogram]()
