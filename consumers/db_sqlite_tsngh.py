@@ -6,13 +6,13 @@ Has the following functions:
 
 Example JSON message
 {
-    "message": "I just shared a meme! It was amazing.",
-    "author": "Charlie",
+    "message": "I just ice skating in Minneapolis! It was invigorating.",
+    "author": "Judy",
     "timestamp": "2025-01-29 14:35:20",
-    "category": "humor",
+    "category": "winter sports",
     "sentiment": 0.87,
-    "keyword_mentioned": "meme",
-    "message_length": 42
+    "keyword_mentioned": "skating",
+    "message_length": 45
 }
 
 """
