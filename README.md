@@ -188,4 +188,4 @@ This project is licensed under the MIT License as an example project.
 You are encouraged to fork, copy, explore, and modify the code as you like. 
 See the [LICENSE](LICENSE.txt) file for more.
 
-![Histogram]()
+![Histogram](https://github.com/tsngh/buzzline-06-tsngh/blob/1ca2765f10590f37b4045a950fd7008989df7c87/histogram.png)
